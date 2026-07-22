@@ -1,0 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+/* Awaj ET brand tokens — see brand guide v1.0 */
+@theme {
+  --color-gold: #f0a93b; /* Solar Gold — CTAs, key highlights */
+  --color-amber: #c97d1e; /* Deep Amber — hover states, secondary emphasis */
+  --color-navy: #12121c; /* Ink Navy — dark backgrounds (never pure black) */
+  --color-charcoal: #2b2b33; /* Visor Charcoal — body text, headlines */
+  --color-mist: #f7f3ec; /* Suit White / Mist — light backgrounds */
+  --color-smoke: #6b6873; /* Muted gray — secondary text */
+
+  --font-sans: "Inter", -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
