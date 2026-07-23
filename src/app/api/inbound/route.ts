@@ -47,39 +47,39 @@ export async function POST(req: NextRequest) {
 
   const { email_id, from, to, subject, message_id, created_at } = event.data;
 
-  const existing = await db().listDocuments(DB(), COLLECTIONS.inboundEmails, [
-    Query.equal("resendId", email_id),
-    Query.limit(1),
-  ]);
-  if (existing.total > 0) {
-    return NextResponse.json({ received: true, duplicate: true });
-  }
+  // Ack Resend immediately — the dedup check, body fetch, DB write, and
+  // Telegram notify below are 3+ sequential network round-trips that were
+  // slow enough (5s+) to risk Resend's own delivery timeout. All of that
+  // now runs in the background via after(), well within maxDuration.
+  after(async () => {
+    const existing = await db().listDocuments(DB(), COLLECTIONS.inboundEmails, [
+      Query.equal("resendId", email_id),
+      Query.limit(1),
+    ]);
+    if (existing.total > 0) return;
 
-  const { data: full } = await resend().emails.receiving.get(email_id);
+    const { data: full } = await resend().emails.receiving.get(email_id);
 
-  const fromAddress = from.toLowerCase().trim();
-  const toAddress = to?.[0]?.toLowerCase().trim() ?? "";
-  const cleanSubject = subject ?? "(no subject)";
+    const fromAddress = from.toLowerCase().trim();
+    const toAddress = to?.[0]?.toLowerCase().trim() ?? "";
+    const cleanSubject = subject ?? "(no subject)";
 
-  await db().createDocument(DB(), COLLECTIONS.inboundEmails, ID.unique(), {
-    resendId: email_id,
-    messageId: message_id ?? "",
-    from: fromAddress,
-    to: toAddress,
-    subject: cleanSubject,
-    text: full?.text?.slice(0, 50000) ?? "",
-    html: full?.html?.slice(0, 500000) ?? "",
-    status: "unread",
-    receivedAt: created_at ?? new Date().toISOString(),
-  });
+    await db().createDocument(DB(), COLLECTIONS.inboundEmails, ID.unique(), {
+      resendId: email_id,
+      messageId: message_id ?? "",
+      from: fromAddress,
+      to: toAddress,
+      subject: cleanSubject,
+      text: full?.text?.slice(0, 50000) ?? "",
+      html: full?.html?.slice(0, 500000) ?? "",
+      status: "unread",
+      receivedAt: created_at ?? new Date().toISOString(),
+    });
 
-  // Respond to Resend immediately — don't make webhook delivery latency (and
-  // thus retry behavior) depend on Telegram's response time.
-  after(() =>
-    sendTelegramMessage(
+    await sendTelegramMessage(
       `📧 New email\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nSubject: ${cleanSubject}\n\n${env.appUrl()}/inbox`
-    )
-  );
+    );
+  });
 
   return NextResponse.json({ received: true });
 }
