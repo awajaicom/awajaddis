@@ -16,7 +16,7 @@ export default function ColdIntro({ firstName = "", industry = "Ethiopian busine
        Just checking in one more time regarding my research request.
       </P>
       <P>
-        We’d really value your input as a {industry} business. The questionnaire is short, 
+        We’d really value your input as {industry} business. The questionnaire is short, 
         and we’d be happy to provide a free brand guideline setup, photo/video production, or AI-powered content as a thank-you.
       </P>
       <P>

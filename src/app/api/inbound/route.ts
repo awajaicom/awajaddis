@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { Webhook } from "svix";
 import { COLLECTIONS, DB, ID, Query, db } from "@/lib/appwrite";
 import { env } from "@/lib/env";
 import { resend } from "@/lib/send";
 import { sendTelegramMessage } from "@/lib/telegram";
+
+export const maxDuration = 60;
 
 interface ReceivedEmailEvent {
   type: string;
@@ -71,8 +73,12 @@ export async function POST(req: NextRequest) {
     receivedAt: created_at ?? new Date().toISOString(),
   });
 
-  await sendTelegramMessage(
-    `📧 New email\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nSubject: ${cleanSubject}\n\n${env.appUrl()}/inbox`
+  // Respond to Resend immediately — don't make webhook delivery latency (and
+  // thus retry behavior) depend on Telegram's response time.
+  after(() =>
+    sendTelegramMessage(
+      `📧 New email\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nSubject: ${cleanSubject}\n\n${env.appUrl()}/inbox`
+    )
   );
 
   return NextResponse.json({ received: true });
