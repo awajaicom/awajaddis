@@ -18,3 +18,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   await db().updateDocument(DB(), COLLECTIONS.inboundEmails, id, { status: body.status });
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const { id } = await params;
+  await db().deleteDocument(DB(), COLLECTIONS.inboundEmails, id);
+  return NextResponse.json({ deleted: true });
+}

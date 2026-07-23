@@ -122,9 +122,12 @@ async function main() {
     { kind: "string", key: "category", size: 32 },
     { kind: "string", key: "status", size: 32, default: "sent" },
     { kind: "datetime", key: "sentAt" },
+    { kind: "string", key: "to", size: 320 },
+    { kind: "string", key: "body", size: 20000 },
   ], [
     { key: "by_resendId", attributes: ["resendId"] },
     { key: "by_category", attributes: ["category"] },
+    { key: "by_to", attributes: ["to"] },
   ]);
 
   await ensureCollection("suppressions", "Suppressions", [

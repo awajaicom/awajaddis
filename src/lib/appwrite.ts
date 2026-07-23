@@ -110,6 +110,9 @@ export interface Send {
   category: "cold" | "lead_magnet" | "transactional" | "warmup" | "nurture";
   status: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained";
   sentAt: string;
+  to?: string;
+  /** Plain-text body — only populated for inbox replies, used to render conversation threads. */
+  body?: string;
 }
 
 export interface Suppression {

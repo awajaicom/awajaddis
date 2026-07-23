@@ -29,6 +29,8 @@ export interface SendEmailInput {
    * the payload ~4× and causes Resend 500s on larger files.
    */
   attachments?: { filename: string; content: string }[];
+  /** Plain-text body — only used to persist inbox replies for thread rendering. */
+  body?: string;
 }
 
 const FROM_BY_CATEGORY: Record<Send["category"], () => string> = {
@@ -82,6 +84,8 @@ export async function sendEmail(input: SendEmailInput): Promise<{ id: string | n
     category: input.category,
     status: "sent",
     sentAt: new Date().toISOString(),
+    to,
+    body: input.body ?? "",
   });
 
   return { id: data?.id ?? null };

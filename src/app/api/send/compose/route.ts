@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createElement } from "react";
 import FreeForm from "@/emails/free-form";
 import { sendEmail } from "@/lib/send";
-import { ATTACHMENTS_BUCKET, COLLECTIONS, DB, Query, db, storage } from "@/lib/appwrite";
+import { COLLECTIONS, DB, Query, db } from "@/lib/appwrite";
+import { AttachmentTooLargeError, cleanupAttachmentFiles, fetchAttachments, parseUploadedFiles } from "@/lib/attachments";
 import { DEFAULT_SENDER, getSender, senderAddress } from "@/lib/senders";
 
 export const maxDuration = 60;
-
-/** Keep well under Resend's 40 MB total-message cap (base64 adds ~33%). */
-const MAX_TOTAL_ATTACHMENT_BYTES = 15 * 1024 * 1024;
 
 /**
  * Free-form manual send. Attachments are NOT uploaded here — the browser
@@ -26,9 +24,7 @@ export async function POST(req: NextRequest) {
   const subject = String(payload.subject ?? "").trim();
   const body = String(payload.body ?? "").trim();
   const style = payload.style === "branded" ? "branded" : "plain";
-  const files: { id: string; name: string }[] = Array.isArray(payload.files)
-    ? payload.files.filter((f: { id?: unknown; name?: unknown }) => typeof f.id === "string" && typeof f.name === "string")
-    : [];
+  const files = parseUploadedFiles(payload.files);
 
   if (!to.includes("@") || !subject || !body) {
     return NextResponse.json({ error: "to, subject, and body are required" }, { status: 400 });
@@ -40,31 +36,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "from is not an approved sender account" }, { status: 400 });
   }
 
-  const bucket = ATTACHMENTS_BUCKET();
-  const cleanup = () =>
-    Promise.allSettled(files.map((f) => storage().deleteFile(bucket, f.id)));
-
   try {
-    // Validate sizes from metadata before downloading anything.
-    let total = 0;
-    for (const f of files) {
-      const meta = await storage().getFile(bucket, f.id);
-      total += meta.sizeOriginal;
-    }
-    if (total > MAX_TOTAL_ATTACHMENT_BYTES) {
-      await cleanup();
-      return NextResponse.json(
-        { error: `Attachments too large (${(total / 1024 / 1024).toFixed(1)} MB). Max 15 MB total.` },
-        { status: 413 }
-      );
-    }
-
-    const attachments = await Promise.all(
-      files.map(async (f) => ({
-        filename: f.name,
-        content: Buffer.from(await storage().getFileDownload(bucket, f.id)).toString("base64"),
-      }))
-    );
+    const attachments = await fetchAttachments(files);
 
     const contacts = await db().listDocuments(DB(), COLLECTIONS.contacts, [
       Query.equal("email", to),
@@ -91,7 +64,12 @@ export async function POST(req: NextRequest) {
       );
     }
     return NextResponse.json({ ok: true, resendId: result.id, attachments: files.length });
+  } catch (e) {
+    if (e instanceof AttachmentTooLargeError) {
+      return NextResponse.json({ error: e.message }, { status: 413 });
+    }
+    throw e;
   } finally {
-    await cleanup();
+    await cleanupAttachmentFiles(files);
   }
 }

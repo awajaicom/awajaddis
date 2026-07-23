@@ -3,13 +3,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { LogoutButton } from "./logout-button";
-import { NAV_ITEMS } from "./nav-items";
+import { isActive, NAV } from "./nav";
 
 /** Hamburger + slide-in drawer, shown on small screens only. */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -45,16 +47,24 @@ export function MobileNav() {
             </Dialog.Close>
           </div>
           <nav className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="block rounded-md px-3 py-2.5 text-sm font-medium text-mist/70 hover:bg-white/5 hover:text-gold"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors ${
+                    active
+                      ? "bg-white/10 font-semibold text-gold"
+                      : "text-mist/70 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <span className="font-mono text-[10px] text-white/30">{item.code}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
             <LogoutButton className="mt-4" />
           </nav>
         </Dialog.Content>

@@ -2,19 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderTemplate, TEMPLATES } from "@/emails/registry";
 import { sendEmail } from "@/lib/send";
 import { COLLECTIONS, DB, Query, db } from "@/lib/appwrite";
+import { AttachmentTooLargeError, cleanupAttachmentFiles, fetchAttachments, parseUploadedFiles } from "@/lib/attachments";
 import { getSender, senderAddress } from "@/lib/senders";
+
+export const maxDuration = 60;
 
 /**
  * Manual send from the dashboard.
- * POST { to, templateKey, subject?, vars?, ignoreSuppression? }
+ * POST { to, templateKey, subject?, vars?, ignoreSuppression?,
+ *        files?: [{ id: string, name: string }] }
  *
  * Suppression is respected by default; `ignoreSuppression` only works for
- * transactional templates.
+ * transactional templates. Attachments follow the same upload-then-reference
+ * flow as the free-form compose send (see /api/send/compose).
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const to = String(body.to ?? "").toLowerCase().trim();
   const entry = TEMPLATES[body.templateKey];
+  const files = parseUploadedFiles(body.files);
 
   if (!to.includes("@") || !entry) {
     return NextResponse.json(
@@ -48,24 +54,36 @@ export async function POST(req: NextRequest) {
     .replaceAll("{{firstName}}", vars.firstName || "there")
     .replaceAll("{{company}}", vars.company || "your business");
 
-  const result = await sendEmail({
-    to,
-    subject,
-    react: rendered.element,
-    category: entry.category,
-    from: sender ? senderAddress(sender) : undefined,
-    replyTo: sender && !sender.email.startsWith("no-reply") ? sender.email : undefined,
-    templateKey: body.templateKey,
-    contactId,
-    skipSuppressionCheck:
-      entry.category === "transactional" && body.ignoreSuppression === true,
-  });
+  try {
+    const attachments = await fetchAttachments(files);
 
-  if (result.skipped) {
-    return NextResponse.json(
-      { error: `Not sent — recipient is on the suppression list (${result.skipped}).` },
-      { status: 409 }
-    );
+    const result = await sendEmail({
+      to,
+      subject,
+      react: rendered.element,
+      category: entry.category,
+      from: sender ? senderAddress(sender) : undefined,
+      replyTo: sender && !sender.email.startsWith("no-reply") ? sender.email : undefined,
+      templateKey: body.templateKey,
+      contactId,
+      skipSuppressionCheck:
+        entry.category === "transactional" && body.ignoreSuppression === true,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    });
+
+    if (result.skipped) {
+      return NextResponse.json(
+        { error: `Not sent — recipient is on the suppression list (${result.skipped}).` },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ ok: true, resendId: result.id, attachments: files.length });
+  } catch (e) {
+    if (e instanceof AttachmentTooLargeError) {
+      return NextResponse.json({ error: e.message }, { status: 413 });
+    }
+    throw e;
+  } finally {
+    await cleanupAttachmentFiles(files);
   }
-  return NextResponse.json({ ok: true, resendId: result.id });
 }

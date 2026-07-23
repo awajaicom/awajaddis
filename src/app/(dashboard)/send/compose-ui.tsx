@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { AttachmentPicker, attachmentsTooBig, uploadToAppwrite } from "@/components/attachment-picker";
 import { Select } from "@/components/ui/select";
 import { DEFAULT_SENDER, SENDERS } from "@/lib/senders";
 
@@ -18,35 +19,6 @@ const STYLE_OPTIONS = [
   { value: "branded", label: "Branded — logo + unsubscribe footer" },
 ];
 
-function fmtSize(bytes: number): string {
-  return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-/**
- * Upload straight from the browser to Appwrite Storage — bypasses Vercel's
- * 4.5 MB request-body cap. The bucket is write-only for anonymous users;
- * the server reads the file by ID and deletes it after sending.
- */
-async function uploadToAppwrite(file: File): Promise<{ id: string; name: string }> {
-  const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-  const project = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
-  const bucket = process.env.NEXT_PUBLIC_APPWRITE_ATTACHMENTS_BUCKET_ID ?? "attachments";
-  if (!endpoint || !project) {
-    throw new Error("NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID must be set");
-  }
-  const form = new FormData();
-  form.set("fileId", "unique()");
-  form.set("file", file);
-  const res = await fetch(`${endpoint}/storage/buckets/${bucket}/files`, {
-    method: "POST",
-    headers: { "X-Appwrite-Project": project },
-    body: form,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message ?? `Upload failed for ${file.name}`);
-  return { id: data.$id, name: file.name };
-}
-
 export function ComposeForm() {
   const [from, setFrom] = useState(DEFAULT_SENDER);
   const [to, setTo] = useState("");
@@ -54,12 +26,11 @@ export function ComposeForm() {
   const [body, setBody] = useState("");
   const [style, setStyle] = useState("plain");
   const [files, setFiles] = useState<File[]>([]);
+  const [attachmentsKey, setAttachmentsKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
 
-  const totalSize = files.reduce((s, f) => s + f.size, 0);
-  const tooBig = totalSize > 15 * 1024 * 1024;
+  const tooBig = attachmentsTooBig(files);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +57,7 @@ export function ComposeForm() {
       if (res.ok) {
         setBody("");
         setFiles([]);
-        if (fileInput.current) fileInput.current.value = "";
+        setAttachmentsKey((k) => k + 1);
       }
     } catch (err) {
       setResult({ ok: false, text: (err as Error).message });
@@ -132,29 +103,7 @@ export function ComposeForm() {
             <label className={labelCls}>Email style</label>
             <Select value={style} onValueChange={setStyle} options={STYLE_OPTIONS} />
           </div>
-          <div>
-            <label className={labelCls}>Attachments (max 15 MB total)</label>
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-              className="block w-full text-sm text-smoke file:mr-3 file:rounded-md file:border-0 file:bg-gold/15 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-amber hover:file:bg-gold/25"
-            />
-            {files.length > 0 && (
-              <ul className="mt-2 space-y-1 text-sm text-smoke">
-                {files.map((f, i) => (
-                  <li key={i} className="flex items-center justify-between gap-2">
-                    <span className="truncate">{f.name}</span>
-                    <span className="shrink-0">{fmtSize(f.size)}</span>
-                  </li>
-                ))}
-                <li className={`pt-1 font-medium ${tooBig ? "text-red-600" : ""}`}>
-                  Total: {fmtSize(totalSize)} {tooBig && "— over the 15 MB limit"}
-                </li>
-              </ul>
-            )}
-          </div>
+          <AttachmentPicker key={attachmentsKey} files={files} onChange={setFiles} disabled={busy} />
         </div>
       </div>
 

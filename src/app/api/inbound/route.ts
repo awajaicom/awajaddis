@@ -3,6 +3,7 @@ import { Webhook } from "svix";
 import { COLLECTIONS, DB, ID, Query, db } from "@/lib/appwrite";
 import { env } from "@/lib/env";
 import { resend } from "@/lib/send";
+import { sendTelegramMessage } from "@/lib/telegram";
 
 interface ReceivedEmailEvent {
   type: string;
@@ -54,17 +55,25 @@ export async function POST(req: NextRequest) {
 
   const { data: full } = await resend().emails.receiving.get(email_id);
 
+  const fromAddress = from.toLowerCase().trim();
+  const toAddress = to?.[0]?.toLowerCase().trim() ?? "";
+  const cleanSubject = subject ?? "(no subject)";
+
   await db().createDocument(DB(), COLLECTIONS.inboundEmails, ID.unique(), {
     resendId: email_id,
     messageId: message_id ?? "",
-    from,
-    to: to?.[0] ?? "",
-    subject: subject ?? "(no subject)",
+    from: fromAddress,
+    to: toAddress,
+    subject: cleanSubject,
     text: full?.text?.slice(0, 50000) ?? "",
     html: full?.html?.slice(0, 500000) ?? "",
     status: "unread",
     receivedAt: created_at ?? new Date().toISOString(),
   });
+
+  await sendTelegramMessage(
+    `📧 New email\n\nFrom: ${fromAddress}\nTo: ${toAddress}\nSubject: ${cleanSubject}\n\n${env.appUrl()}/inbox`
+  );
 
   return NextResponse.json({ received: true });
 }

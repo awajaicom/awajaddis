@@ -3,6 +3,11 @@ import ColdIntro from "./cold/cold-intro";
 import ColdFollowup1 from "./cold/cold-followup-1";
 import ColdFollowup2 from "./cold/cold-followup-2";
 import ColdBreakup from "./cold/cold-breakup";
+import ResearchIntro from "./research/research-intro";
+import ResearchFollowup1 from "./research/research-followup-1";
+import ResearchFollowup2 from "./research/research-followup-2";
+import ResearchFollowup3 from "./research/research-followup-3";
+import ResearchBreakup from "./research/research-breakup";
 import LeadMagnetDelivery from "./lead-magnet/lead-magnet-delivery";
 import Nurture1 from "./lead-magnet/nurture-1";
 import Nurture2 from "./lead-magnet/nurture-2";
@@ -53,6 +58,36 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
     defaultSubject: "Closing the loop, {{firstName}}",
     category: "cold",
     description: "Step 4 — polite breakup (day 14)",
+  },
+  "research-intro": {
+    component: (p) => createElement(ResearchIntro, p),
+    defaultSubject: "Quick research question for {{company}}",
+    category: "cold",
+    description: "Research step 1 — questionnaire ask with a free-service incentive",
+  },
+  "research-followup-1": {
+    component: (p) => createElement(ResearchFollowup1, p),
+    defaultSubject: "Re: Quick research question for {{company}}",
+    category: "cold",
+    description: "Research step 2 — follow-up in case the first email was missed (day 3)",
+  },
+  "research-followup-2": {
+    component: (p) => createElement(ResearchFollowup2, p),
+    defaultSubject: "Following up — research for {{company}}",
+    category: "cold",
+    description: "Research step 3 — second follow-up, offers to redirect to the right contact (day 7)",
+  },
+  "research-followup-3": {
+    component: (p) => createElement(ResearchFollowup3, p),
+    defaultSubject: "A quick insight + resource for {{company}}",
+    category: "cold",
+    description: "Research step 4 — shares an insight and lead magnet alongside the questionnaire ask (day 10)",
+  },
+  "research-breakup": {
+    component: (p) => createElement(ResearchBreakup, p),
+    defaultSubject: "Closing the loop on our research, {{firstName}}",
+    category: "cold",
+    description: "Research step 5 — polite breakup, final research request (day 14)",
   },
   "lead-magnet-delivery": {
     component: (p) => createElement(LeadMagnetDelivery, p),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AttachmentPicker, attachmentsTooBig, uploadToAppwrite } from "@/components/attachment-picker";
 import { Select } from "@/components/ui/select";
 import { DEFAULT_SENDER, SENDERS } from "@/lib/senders";
 
@@ -25,6 +26,7 @@ function fieldsFor(key: string, category: string): string[] {
   if (key === "warmup-ping") return ["note"];
   if (key === "lead-magnet-delivery") return ["firstName", "resourceName", "downloadUrl"];
   if (key === "receipt") return ["firstName", "invoiceNumber", "amount", "service"];
+  if (key.startsWith("research-")) return ["firstName", "company", "industry"];
   if (category === "transactional") return ["firstName"];
   return ["firstName", "lastName", "company"];
 }
@@ -33,6 +35,7 @@ const FIELD_META: Record<string, { label: string; placeholder: string }> = {
   firstName: { label: "First name", placeholder: "Sara" },
   lastName: { label: "Last name", placeholder: "Bekele" },
   company: { label: "Company", placeholder: "Sara's Boutique" },
+  industry: { label: "Industry", placeholder: "Ethiopian business" },
   note: { label: "Message body", placeholder: "Checking in on this week's schedule." },
   resourceName: { label: "Resource name", placeholder: "SME Marketing Playbook" },
   downloadUrl: { label: "Download URL", placeholder: "https://awajet.com/downloads/playbook.pdf" },
@@ -47,11 +50,14 @@ export function ManualSendForm({ templates }: { templates: TemplateOption[] }) {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState(templates[0]?.defaultSubject ?? "");
   const [vars, setVars] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<File[]>([]);
+  const [attachmentsKey, setAttachmentsKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const selected = templates.find((t) => t.key === templateKey);
   const varFields = selected ? fieldsFor(selected.key, selected.category) : [];
+  const tooBig = attachmentsTooBig(files);
 
   function pickTemplate(key: string) {
     const t = templates.find((t) => t.key === key)!;
@@ -65,17 +71,27 @@ export function ManualSendForm({ templates }: { templates: TemplateOption[] }) {
     setBusy(true);
     setResult(null);
     try {
+      let uploaded: { id: string; name: string }[] = [];
+      if (files.length > 0) {
+        setResult({ ok: true, text: `Uploading ${files.length} attachment(s)…` });
+        uploaded = await Promise.all(files.map(uploadToAppwrite));
+      }
+      setResult(null);
       const res = await fetch("/api/send/manual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to, templateKey, subject, vars }),
+        body: JSON.stringify({ from, to, templateKey, subject, vars, files: uploaded }),
       });
       const data = await res.json();
       setResult(
         res.ok
-          ? { ok: true, text: `Sent to ${to} (Resend ID: ${data.resendId ?? "n/a"})` }
+          ? { ok: true, text: `Sent to ${to}${data.attachments ? ` with ${data.attachments} attachment(s)` : ""} (Resend ID: ${data.resendId ?? "n/a"})` }
           : { ok: false, text: data.error ?? "Send failed." }
       );
+      if (res.ok) {
+        setFiles([]);
+        setAttachmentsKey((k) => k + 1);
+      }
     } catch (err) {
       setResult({ ok: false, text: (err as Error).message });
     }
@@ -126,12 +142,15 @@ export function ManualSendForm({ templates }: { templates: TemplateOption[] }) {
               />
             </div>
           ))}
+          <div className="sm:col-span-2">
+            <AttachmentPicker key={attachmentsKey} files={files} onChange={setFiles} disabled={busy} />
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <button
-          disabled={busy || !to}
+          disabled={busy || !to || tooBig}
           className="w-full rounded-md bg-gold px-5 py-2.5 text-sm font-semibold text-navy hover:bg-amber disabled:opacity-50 sm:w-auto"
         >
           {busy ? "Sending…" : "Send email"}

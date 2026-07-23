@@ -21,4 +21,7 @@ export const env = {
   warmupStartVolume: () => Number(process.env.WARMUP_START_VOLUME ?? 10),
   warmupMaxDaily: () => Number(process.env.WARMUP_MAX_DAILY ?? 200),
   warmupGrowthRate: () => Number(process.env.WARMUP_GROWTH_RATE ?? 1.25),
+  /** Optional — inbox notifications no-op silently when either is unset. */
+  telegramBotToken: () => process.env.TELEGRAM_BOT_TOKEN,
+  telegramChatId: () => process.env.TELEGRAM_CHAT_ID,
 };

@@ -10,7 +10,7 @@ export interface ColdProps {
 
 export default function ColdIntro({ firstName = "", industry = "Ethiopian business", company = "your business" }: ColdProps) {
   return (
-    <EmailLayout preview={`Research Collaboration for ${company}`}>
+    <EmailLayout preview={`Re: Research Collaboration for ${company}`}>
       <P>Selam {firstName},</P>
       <P>
        Just wanted to follow up on my email below in case you missed it.
