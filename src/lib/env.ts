@@ -23,5 +23,10 @@ export const env = {
   warmupGrowthRate: () => Number(process.env.WARMUP_GROWTH_RATE ?? 1.25),
   /** Optional — inbox notifications no-op silently when either is unset. */
   telegramBotToken: () => process.env.TELEGRAM_BOT_TOKEN,
-  telegramChatId: () => process.env.TELEGRAM_CHAT_ID,
+  /** Comma-separated chat IDs — every recipient gets the same notification. */
+  telegramChatIds: (): string[] =>
+    (process.env.TELEGRAM_CHAT_ID ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
 };
