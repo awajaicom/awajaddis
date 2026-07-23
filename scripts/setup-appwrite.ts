@@ -141,6 +141,21 @@ async function main() {
     { kind: "datetime", key: "startedAt" },
   ]);
 
+  await ensureCollection("inbound_emails", "Inbound Emails", [
+    { kind: "string", key: "resendId", required: true, size: 128 },
+    { kind: "string", key: "messageId", size: 512 },
+    { kind: "string", key: "from", required: true, size: 320 },
+    { kind: "string", key: "to", size: 320 },
+    { kind: "string", key: "subject", size: 512 },
+    { kind: "string", key: "text", size: 50000 },
+    { kind: "string", key: "html", size: 500000 },
+    { kind: "string", key: "status", size: 16, default: "unread" },
+    { kind: "datetime", key: "receivedAt" },
+  ], [
+    { key: "by_resendId", attributes: ["resendId"] },
+    { key: "by_status", attributes: ["status"] },
+  ]);
+
   // Storage bucket for compose-tab email attachments. Anonymous users may
   // CREATE files (write-only dropbox — uploads bypass Vercel's 4.5 MB body
   // cap by going browser → Appwrite directly), but only the server API key

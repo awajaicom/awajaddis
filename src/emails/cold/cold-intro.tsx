@@ -10,7 +10,7 @@ export interface ColdProps {
 export default function ColdIntro({ firstName = "there", company = "your business" }: ColdProps) {
   return (
     <EmailLayout preview={`Quick idea for ${company}`}>
-      <P>Hi {firstName},</P>
+      <P>Selam {firstName},</P>
       <P>
         I came across {company} and noticed you’re active on social media but might not be
         getting the customer inquiries to match the effort.

@@ -7,7 +7,7 @@ import { SESSION_COOKIE, verifySessionToken, verifyPassword } from "@/lib/auth";
  *   /login, /api/auth/login       — the door itself
  *   /api/cron/*                   — Bearer CRON_SECRET
  *   /api/send/transactional       — Bearer CRON_SECRET
- *   /api/webhooks/*               — svix signature
+ *   /api/webhooks/*, /api/inbound — svix signature
  *   /api/unsubscribe, /unsubscribed, /api/lead-magnet/* — public by design
  *   /_next/*, favicon, logo files — static assets
  */
@@ -47,6 +47,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!login|unsubscribed|api/auth/login|api/cron|api/webhooks|api/unsubscribe|api/lead-magnet|api/send/transactional|_next|favicon\\.ico|logo\\.svg|logo\\.png).*)",
+    "/((?!login|unsubscribed|api/auth/login|api/cron|api/webhooks|api/inbound|api/unsubscribe|api/lead-magnet|api/send/transactional|_next|favicon\\.ico|logo\\.svg|logo\\.png).*)",
   ],
 };

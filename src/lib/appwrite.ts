@@ -15,6 +15,7 @@ export const COLLECTIONS = {
   sends: "sends",
   suppressions: "suppressions",
   warmup: "warmup_state",
+  inboundEmails: "inbound_emails",
 } as const;
 
 let _client: Client | null = null;
@@ -125,6 +126,20 @@ export interface WarmupState {
   date: string; // YYYY-MM-DD
   status: "active" | "paused" | "completed";
   startedAt: string;
+}
+
+export interface InboundEmail {
+  $id: string;
+  $createdAt: string;
+  resendId: string;
+  messageId: string;
+  from: string;
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+  status: "unread" | "read";
+  receivedAt: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────

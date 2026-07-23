@@ -9,15 +9,17 @@ export interface Sender {
 }
 
 export const SENDERS: Sender[] = [
-  { email: "aman@awajet.com", name: "Amanuel Awaj" },
-  { email: "kal@awajet.com", name: "Kalkidan Awaj" },
-  { email: "sof@awajet.com", name: "Sofonias Awaj" },
-  { email: "ibsa@awajet.com", name: "Ibsa from Awaj ET" },
-  { email: "info@awajet.com", name: "Awaj ET" },
-  { email: "hello@awajet.com", name: "Awaj ET" },
-  { email: "support@awajet.com", name: "Awaj ET Support" },
-  { email: "sales@awajet.com", name: "Awaj ET Sales" },
-  { email: "no-reply@awajet.com", name: "Awaj ET" },
+  { email: "aman@awajaddis.com", name: "Amanuel Awaj" },
+  { email: "kal@awajaddis.com", name: "Kalkidan Awaj" },
+  { email: "sof@awajaddis.com", name: "Sofonias Awaj" },
+  { email: "nati@awajaddis.com", name: "Natnael Awaj" },
+  { email: "eden@awajaddis.com", name: "Eden Awaj" },
+  { email: "ibsa@awajaddis.com", name: "Ibsa Awaj" },
+  { email: "info@awajaddis.com", name: "Awaj ET" },
+  { email: "hello@awajaddis.com", name: "Awaj ET" },
+  { email: "support@awajaddis.com", name: "Awaj ET Support" },
+  { email: "sales@awajaddis.com", name: "Awaj ET Sales" },
+  { email: "no-reply@awajaddis.com", name: "Awaj ET" },
 ];
 
 export const DEFAULT_SENDER = SENDERS[0].email;

@@ -6,15 +6,15 @@ import { EmailLayout, P } from "../components/layout";
  * control (or partner inboxes that will open/reply). Never send warm-up
  * pings to strangers.
  */
-export default function WarmupPing({ note = "Checking in on this week's schedule." }: { note?: string }) {
+export default function WarmupPing({ note = "የሸራር ቢዝነስ ጀማ" }: { note?: string }) {
   return (
     <EmailLayout preview={note}>
-      <P>Hi,</P>
+      <P>ሰላም,</P>
       <P>{note}</P>
       <P>
-        Best,
+        ከምስጋና ጋር,
         <br />
-        Abu
+        ቆጠር
       </P>
     </EmailLayout>
   );
