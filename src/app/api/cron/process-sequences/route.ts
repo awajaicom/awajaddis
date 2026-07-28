@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 
 export const maxDuration = 300;
 
-/** Vercel Cron: every 15 min. Sends due sequence steps within limits. */
+/** Triggered by .github/workflows/cron.yml every 15 min. Sends due sequence steps within limits. */
 export async function GET(req: NextRequest) {
   if (req.headers.get("authorization") !== `Bearer ${env.cronSecret()}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

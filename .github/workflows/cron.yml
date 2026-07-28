@@ -1,0 +1,29 @@
+name: Cron jobs
+
+# GitHub Actions scheduling instead of Vercel Cron (which restricts free-plan
+# schedules to once a day and would block the every-15-minutes sequence run).
+# Requires a repo secret CRON_SECRET matching the app's CRON_SECRET env var.
+on:
+  schedule:
+    - cron: "*/15 * * * *" # process-sequences
+    - cron: "0 0 * * *" # warmup, daily at midnight UTC
+  workflow_dispatch: {}
+
+jobs:
+  process-sequences:
+    if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/cron/process-sequences
+        run: |
+          curl -fsS -X GET "https://www.awajaddis.com/api/cron/process-sequences" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  warmup:
+    if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/cron/warmup
+        run: |
+          curl -fsS -X GET "https://www.awajaddis.com/api/cron/warmup" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
