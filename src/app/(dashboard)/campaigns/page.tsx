@@ -11,6 +11,13 @@ export default async function CampaignsPage() {
   const campaigns = campaignsRes.documents as unknown as Campaign[];
   const sequences = sequencesRes.documents as unknown as Sequence[];
   const seqName = (id: string) => sequences.find((s) => s.$id === id)?.name ?? "—";
+  const today = new Date().toISOString().slice(0, 10);
+  const sentLabel = (c: Campaign) =>
+    !c.sentTodayDate
+      ? "sent"
+      : c.sentTodayDate === today
+        ? "sent today"
+        : `sent on ${c.sentTodayDate}`;
 
   return (
     <div>
@@ -25,7 +32,7 @@ export default async function CampaignsPage() {
               <div>
                 <h2 className="font-semibold">{c.name}</h2>
                 <p className="mt-1 text-sm text-smoke">
-                  {c.type} · sequence: {seqName(c.sequenceId)} · {c.sentToday}/{c.dailyLimit} sent today ·
+                  {c.type} · sequence: {seqName(c.sequenceId)} · {c.sentToday}/{c.dailyLimit} {sentLabel(c)} ·
                   from: {c.fromEmail || "default"}
                 </p>
               </div>
