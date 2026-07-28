@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Call /api/cron/process-sequences
         run: |
-          curl -fsS -X GET "https://www.awajaddis.com/api/cron/process-sequences" \
+          curl -fsS -X GET "https://mail.awajaddis.com/api/cron/process-sequences" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
   warmup:
@@ -25,5 +25,5 @@ jobs:
     steps:
       - name: Call /api/cron/warmup
         run: |
-          curl -fsS -X GET "https://www.awajaddis.com/api/cron/warmup" \
+          curl -fsS -X GET "https://mail.awajaddis.com/api/cron/warmup" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
