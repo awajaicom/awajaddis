@@ -52,3 +52,36 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json({ sequence: seq, stepIds: created });
 }
+
+/**
+ * DELETE — remove a sequence and its steps. Blocked while any campaign still
+ * references it, so a campaign never silently ends up pointing at nothing.
+ * Body: { id }
+ */
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const usedBy = await db().listDocuments(DB(), COLLECTIONS.campaigns, [
+    Query.equal("sequenceId", body.id),
+    Query.limit(10),
+  ]);
+  if (usedBy.total > 0) {
+    const names = usedBy.documents.map((c) => (c as unknown as { name: string }).name).join(", ");
+    return NextResponse.json(
+      { error: `Still used by campaign(s): ${names}. Delete or reassign them first.` },
+      { status: 409 }
+    );
+  }
+
+  const steps = await db().listDocuments(DB(), COLLECTIONS.sequenceSteps, [
+    Query.equal("sequenceId", body.id),
+    Query.limit(500),
+  ]);
+  for (const s of steps.documents) {
+    await db().deleteDocument(DB(), COLLECTIONS.sequenceSteps, s.$id);
+  }
+
+  await db().deleteDocument(DB(), COLLECTIONS.sequences, body.id);
+  return NextResponse.json({ deleted: true, stepsRemoved: steps.documents.length });
+}

@@ -1,6 +1,6 @@
 import { COLLECTIONS, DB, Query, db, type Sequence, type SequenceStep } from "@/lib/appwrite";
 import { TEMPLATES } from "@/emails/registry";
-import { SequenceBuilder } from "./ui";
+import { SequenceBuilder, SequenceControls } from "./ui";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +45,7 @@ export default async function SequencesPage() {
                   </li>
                 ))}
             </ol>
+            <SequenceControls id={seq.$id} />
           </div>
         ))}
         {sequences.length === 0 && <p className="text-smoke/70">No sequences yet — build one above.</p>}

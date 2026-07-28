@@ -9,10 +9,10 @@ export interface Sender {
 }
 
 export const SENDERS: Sender[] = [
-  { email: "aman@awajaddis.com", name: "Amanuel Awaj" },
-  { email: "kal@awajaddis.com", name: "Kalkidan Awaj" },
-  { email: "sof@awajaddis.com", name: "Sofonias Awaj" },
-  { email: "nati@awajaddis.com", name: "Natnael Awaj" },
+  { email: "amanuel@awajaddis.com", name: "Amanuel Awaj" },
+  { email: "kalkidan@awajaddis.com", name: "Kalkidan Awaj" },
+  { email: "sofonias@awajaddis.com", name: "Sofonias Awaj" },
+  { email: "natnael@awajaddis.com", name: "Natnael Awaj" },
   { email: "eden@awajaddis.com", name: "Eden Awaj" },
   { email: "ibsa@awajaddis.com", name: "Ibsa Awaj" },
   { email: "info@awajaddis.com", name: "Awaj ET" },

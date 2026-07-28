@@ -118,3 +118,40 @@ export function SequenceBuilder({ templates }: { templates: TemplateOption[] }) 
     </div>
   );
 }
+
+export function SequenceControls({ id }: { id: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function remove() {
+    if (!window.confirm("Delete this sequence and its steps?")) return;
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/sequences", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Failed to delete.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3 flex items-center gap-2">
+      <button
+        disabled={busy}
+        onClick={remove}
+        className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+      >
+        Delete
+      </button>
+      {error && <span className="text-sm text-red-600">{error}</span>}
+    </div>
+  );
+}

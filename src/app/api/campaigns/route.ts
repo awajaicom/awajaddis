@@ -89,3 +89,23 @@ export async function PATCH(req: NextRequest) {
   }
   return NextResponse.json({ ok: true, enrolled });
 }
+
+/**
+ * DELETE — remove a campaign and its enrollments (send history is kept).
+ * Body: { id }
+ */
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const enrollments = await db().listDocuments(DB(), COLLECTIONS.enrollments, [
+    Query.equal("campaignId", body.id),
+    Query.limit(500),
+  ]);
+  for (const e of enrollments.documents) {
+    await db().deleteDocument(DB(), COLLECTIONS.enrollments, e.$id);
+  }
+
+  await db().deleteDocument(DB(), COLLECTIONS.campaigns, body.id);
+  return NextResponse.json({ deleted: true, enrollmentsRemoved: enrollments.documents.length });
+}

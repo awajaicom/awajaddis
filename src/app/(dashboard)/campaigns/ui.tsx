@@ -105,6 +105,18 @@ export function CampaignControls({ id, status, fromEmail }: { id: string; status
     router.refresh();
   }
 
+  async function remove() {
+    if (!window.confirm("Delete this campaign and its enrollments? Send history is kept.")) return;
+    setBusy(true);
+    await fetch("/api/campaigns", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setBusy(false);
+    router.refresh();
+  }
+
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
       {status !== "active" && (
@@ -139,6 +151,13 @@ export function CampaignControls({ id, status, fromEmail }: { id: string; status
         className={btnGhost}
       >
         Enroll
+      </button>
+      <button
+        disabled={busy}
+        onClick={remove}
+        className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+      >
+        Delete
       </button>
       {msg && <span className="text-sm text-smoke">{msg}</span>}
     </div>
