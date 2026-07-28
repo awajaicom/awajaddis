@@ -11,6 +11,7 @@ import {
   type SequenceStep,
 } from "./appwrite";
 import { sendEmail } from "./send";
+import { getSender, senderAddress } from "./senders";
 import { remainingWarmupBudget, recordWarmupSends } from "./warmup";
 import { renderTemplate } from "@/emails/registry";
 
@@ -146,6 +147,11 @@ export async function processDueEnrollments(): Promise<ProcessResult> {
         .replaceAll("{{firstName}}", contact.firstName || "there")
         .replaceAll("{{company}}", contact.company || "your business");
 
+      // A campaign-level fromEmail (must be on the approved list in
+      // senders.ts) overrides the category default, and replies go back to
+      // that same account rather than the generic REPLY_TO fallback.
+      const sender = campaign.fromEmail ? getSender(campaign.fromEmail) : undefined;
+
       await sendEmail({
         to: contact.email,
         subject,
@@ -154,6 +160,8 @@ export async function processDueEnrollments(): Promise<ProcessResult> {
         contactId: contact.$id,
         campaignId: campaign.$id,
         templateKey: step.templateKey,
+        from: sender ? senderAddress(sender) : undefined,
+        replyTo: sender && !sender.email.startsWith("no-reply") ? sender.email : undefined,
       });
 
       budget--;

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Select } from "@/components/ui/select";
+import { SENDERS } from "@/lib/senders";
 
 const inputCls =
   "w-full min-h-10 rounded-md border border-charcoal/20 px-3 py-2 text-sm focus:border-gold focus:outline-none";
@@ -17,6 +18,11 @@ const TYPE_OPTIONS = [
   { value: "nurture", label: "Nurture" },
 ];
 
+const SENDER_OPTIONS = [
+  { value: "", label: "Default for campaign type" },
+  ...SENDERS.map((s) => ({ value: s.email, label: `${s.name} — ${s.email}` })),
+];
+
 export function CampaignForm({ sequences }: { sequences: { id: string; name: string }[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -24,6 +30,7 @@ export function CampaignForm({ sequences }: { sequences: { id: string; name: str
   const [type, setType] = useState("cold");
   const [sequenceId, setSequenceId] = useState("");
   const [dailyLimit, setDailyLimit] = useState(50);
+  const [fromEmail, setFromEmail] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,11 +39,12 @@ export function CampaignForm({ sequences }: { sequences: { id: string; name: str
     await fetch("/api/campaigns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, sequenceId, dailyLimit }),
+      body: JSON.stringify({ name, type, sequenceId, dailyLimit, fromEmail }),
     });
     setBusy(false);
     setName("");
     setSequenceId("");
+    setFromEmail("");
     router.refresh();
   }
 
@@ -66,6 +74,7 @@ export function CampaignForm({ sequences }: { sequences: { id: string; name: str
           className={inputCls}
           aria-label="Daily limit"
         />
+        <Select value={fromEmail} onValueChange={setFromEmail} options={SENDER_OPTIONS} />
       </div>
       <button disabled={busy || !name || !sequenceId} className={`${btnCls} mt-3 w-full sm:w-auto`}>
         Create
@@ -74,10 +83,11 @@ export function CampaignForm({ sequences }: { sequences: { id: string; name: str
   );
 }
 
-export function CampaignControls({ id, status }: { id: string; status: string }) {
+export function CampaignControls({ id, status, fromEmail }: { id: string; status: string; fromEmail: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [tag, setTag] = useState("");
+  const [sender, setSender] = useState(fromEmail);
   const [msg, setMsg] = useState("");
 
   async function patch(payload: Record<string, unknown>) {
@@ -107,6 +117,16 @@ export function CampaignControls({ id, status }: { id: string; status: string })
           Pause
         </button>
       )}
+      <div className="w-full sm:w-56">
+        <Select value={sender} onValueChange={setSender} options={SENDER_OPTIONS} />
+      </div>
+      <button
+        disabled={busy || sender === fromEmail}
+        onClick={() => patch({ fromEmail: sender })}
+        className={btnGhost}
+      >
+        Save sender
+      </button>
       <input
         value={tag}
         onChange={(e) => setTag(e.target.value)}

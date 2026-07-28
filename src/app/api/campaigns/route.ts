@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COLLECTIONS, DB, ID, Query, db, type Campaign, type Contact } from "@/lib/appwrite";
 import { enroll } from "@/lib/sequence-engine";
+import { getSender } from "@/lib/senders";
 
 export async function GET() {
   const res = await db().listDocuments(DB(), COLLECTIONS.campaigns, [
@@ -16,6 +17,9 @@ export async function POST(req: NextRequest) {
   if (!body.name || !body.sequenceId) {
     return NextResponse.json({ error: "name and sequenceId are required" }, { status: 400 });
   }
+  if (body.fromEmail && !getSender(String(body.fromEmail))) {
+    return NextResponse.json({ error: "fromEmail is not an approved sender account" }, { status: 400 });
+  }
   const doc = await db().createDocument(DB(), COLLECTIONS.campaigns, ID.unique(), {
     name: body.name,
     type: body.type ?? "cold",
@@ -30,8 +34,8 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * PATCH — update status or enroll contacts.
- * Body: { id, status? , enroll?: { tag?: string, contactIds?: string[] } }
+ * PATCH — update status/fromEmail or enroll contacts.
+ * Body: { id, status?, fromEmail?, enroll?: { tag?: string, contactIds?: string[] } }
  */
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
@@ -39,6 +43,13 @@ export async function PATCH(req: NextRequest) {
 
   if (body.status) {
     await db().updateDocument(DB(), COLLECTIONS.campaigns, body.id, { status: body.status });
+  }
+
+  if (typeof body.fromEmail === "string") {
+    if (body.fromEmail && !getSender(body.fromEmail)) {
+      return NextResponse.json({ error: "fromEmail is not an approved sender account" }, { status: 400 });
+    }
+    await db().updateDocument(DB(), COLLECTIONS.campaigns, body.id, { fromEmail: body.fromEmail });
   }
 
   let enrolled = 0;

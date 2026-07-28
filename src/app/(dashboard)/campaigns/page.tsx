@@ -25,7 +25,8 @@ export default async function CampaignsPage() {
               <div>
                 <h2 className="font-semibold">{c.name}</h2>
                 <p className="mt-1 text-sm text-smoke">
-                  {c.type} · sequence: {seqName(c.sequenceId)} · {c.sentToday}/{c.dailyLimit} sent today
+                  {c.type} · sequence: {seqName(c.sequenceId)} · {c.sentToday}/{c.dailyLimit} sent today ·
+                  from: {c.fromEmail || "default"}
                 </p>
               </div>
               <span
@@ -40,7 +41,7 @@ export default async function CampaignsPage() {
                 {c.status}
               </span>
             </div>
-            <CampaignControls id={c.$id} status={c.status} />
+            <CampaignControls id={c.$id} status={c.status} fromEmail={c.fromEmail} />
           </div>
         ))}
         {campaigns.length === 0 && (
