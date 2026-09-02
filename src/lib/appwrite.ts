@@ -14,8 +14,21 @@ export const COLLECTIONS = {
   enrollments: "enrollments",
   sends: "sends",
   suppressions: "suppressions",
-  warmup: "warmup_state",
   inboundEmails: "inbound_emails",
+  // NB: "outreach_" prefix on these two (not the rest) is deliberate — this
+  // Appwrite database is shared with the leadgen app, which already owns
+  // plain "sms_campaigns"/"sms_messages" collections in a different
+  // (one-shot-blast) shape. sms_events/sms_suppressions are safe to share
+  // (opaque messageId keys / a global phone opt-out list is actually
+  // desirable), and sms_sequences/sms_sequence_steps/sms_enrollments never
+  // collided since leadgen has no drip-sequence concept.
+  smsCampaigns: "outreach_sms_campaigns",
+  smsSequences: "sms_sequences",
+  smsSequenceSteps: "sms_sequence_steps",
+  smsEnrollments: "sms_enrollments",
+  smsMessages: "outreach_sms_messages",
+  smsEvents: "sms_events",
+  smsSuppressions: "sms_suppressions",
 } as const;
 
 let _client: Client | null = null;
@@ -60,6 +73,8 @@ export interface Contact {
   source: "cold" | "lead_magnet" | "manual" | "import";
   tags: string[];
   notes?: string;
+  /** Raw as entered — normalized to E.164 only at send time, see lib/sms/phone.ts. */
+  phone?: string;
 }
 
 export interface Campaign {
@@ -107,7 +122,7 @@ export interface Send {
   templateKey: string;
   subject: string;
   resendId?: string;
-  category: "cold" | "lead_magnet" | "transactional" | "warmup" | "nurture";
+  category: "cold" | "lead_magnet" | "transactional" | "nurture";
   status: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained";
   sentAt: string;
   to?: string;
@@ -119,16 +134,6 @@ export interface Suppression {
   $id: string;
   email: string;
   reason: "unsubscribe" | "bounce" | "complaint" | "manual";
-}
-
-export interface WarmupState {
-  $id: string;
-  day: number;
-  targetVolume: number;
-  sentToday: number;
-  date: string; // YYYY-MM-DD
-  status: "active" | "paused" | "completed";
-  startedAt: string;
 }
 
 export interface InboundEmail {
@@ -143,6 +148,90 @@ export interface InboundEmail {
   html?: string;
   status: "unread" | "read";
   receivedAt: string;
+}
+
+// ── SMS (AfroMessage) ───────────────────────────────────────
+// Separate collections from email's Campaign/Sequence/SequenceStep/
+// Enrollment/Send/Suppression above — same drip-engine shape, different
+// provider and payload (plain-text bodyTemplate, no React template registry).
+
+export interface SmsCampaign {
+  $id: string;
+  name: string;
+  status: "draft" | "active" | "paused" | "completed";
+  sequenceId: string;
+  senderName: string;
+  dailyLimit: number;
+  sentToday: number;
+  sentTodayDate: string; // YYYY-MM-DD, resets daily
+}
+
+export interface SmsSequence {
+  $id: string;
+  name: string;
+  description?: string;
+}
+
+export interface SmsSequenceStep {
+  $id: string;
+  sequenceId: string;
+  order: number;
+  /** Freeform text with {{firstName}}/{{company}} interpolation — no template registry. */
+  bodyTemplate: string;
+  delayHours: number; // delay after the previous step (0 for first step)
+}
+
+export interface SmsEnrollment {
+  $id: string;
+  contactId: string;
+  campaignId: string;
+  sequenceId: string;
+  currentStep: number; // order of the NEXT step to send
+  status: "active" | "completed" | "paused" | "stopped";
+  nextSendAt: string; // ISO datetime
+}
+
+export type SmsMessageState = "pending" | "queued" | "delivered" | "failed";
+export type SmsEventSource = "send_response" | "create_callback" | "status_callback" | "poll";
+export type SmsSuppressionReason = "unsubscribe" | "manual";
+
+export interface SmsMessage {
+  $id: string;
+  campaignId?: string;
+  contactId?: string;
+  enrollmentId?: string;
+  /** AfroMessage message_id. */
+  providerMessageId?: string;
+  /** E.164 normalized. */
+  toNumber: string;
+  /** Exact text sent (post-personalization). */
+  body: string;
+  state: SmsMessageState;
+  providerStatusRaw?: string;
+  providerDescription?: string;
+  parts: number;
+  cost: number;
+  errorCode?: string;
+  errorMessage?: string;
+  /** Null = never polled; reconciliation sorts these first. */
+  lastPolledAt?: string;
+}
+
+/** Append-only audit trail — sms_events is the source of truth for debugging, sms_messages is the projection. */
+export interface SmsEvent {
+  $id: string;
+  messageId: string;
+  source: SmsEventSource;
+  statusRaw?: string;
+  payload: string;
+  receivedAt: string;
+}
+
+/** Mirrors email's Suppression, keyed by phone. Deliberately never touches contacts.status — see lib/sms-sequence-engine.ts. */
+export interface SmsSuppression {
+  $id: string;
+  phone: string;
+  reason: SmsSuppressionReason;
 }
 
 // ── Helpers ───────────────────────────────────────────────

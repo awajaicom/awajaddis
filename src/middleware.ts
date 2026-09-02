@@ -6,7 +6,7 @@ const OLD_HOSTS = new Set(["awajaddis.com", "www.awajaddis.com"]);
 
 /** Routes with their own auth (or none) — bypass the session-cookie gate. */
 const PUBLIC_PATHS =
-  /^\/(login|unsubscribed|api\/auth\/login|api\/cron|api\/webhooks|api\/inbound|api\/unsubscribe|api\/lead-magnet|api\/send\/transactional)(\/|$)/;
+  /^\/(login|unsubscribed|api\/auth\/login|api\/cron|api\/webhooks|api\/inbound|api\/unsubscribe|api\/lead-magnet|api\/send\/transactional|api\/sms\/callback)(\/|$)/;
 
 /**
  * Gate everything behind the signed session cookie EXCEPT routes that have
@@ -16,6 +16,9 @@ const PUBLIC_PATHS =
  *   /api/send/transactional       — Bearer CRON_SECRET
  *   /api/webhooks/*, /api/inbound — svix signature
  *   /api/unsubscribe, /unsubscribed, /api/lead-magnet/* — public by design
+ *   /api/sms/callback/*           — AfroMessage secret-in-URL (no header
+ *                                    available, so it can't use the Bearer
+ *                                    fallback below like /api/sms/reconcile does)
  *   /_next/*, favicon, logo files — static assets (excluded via matcher)
  */
 export async function middleware(req: NextRequest) {
@@ -37,7 +40,7 @@ export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/api/")) {
     // Machine access: API routes also accept `Authorization: Bearer <CRON_SECRET>`
     // so your existing app / scripts can call contacts, campaigns, sequences,
-    // send/manual, and warmup without a browser session.
+    // and send/manual without a browser session.
     const cronSecret = process.env.CRON_SECRET;
     const header = req.headers.get("authorization") ?? "";
     if (

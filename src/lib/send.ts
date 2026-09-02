@@ -35,7 +35,6 @@ export interface SendEmailInput {
 
 const FROM_BY_CATEGORY: Record<Send["category"], () => string> = {
   cold: () => env.fromCold(),
-  warmup: () => env.fromCold(),
   lead_magnet: () => env.fromMarketing(),
   nurture: () => env.fromMarketing(),
   transactional: () => env.fromTransactional(),

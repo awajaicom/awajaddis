@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       source: c.source ?? "manual",
       tags: Array.isArray(c.tags) ? c.tags : [],
       notes: c.notes ?? "",
+      phone: c.phone ?? "",
     });
     created.push(doc.$id);
   }

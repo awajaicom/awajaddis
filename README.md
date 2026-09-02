@@ -1,6 +1,6 @@
 # Awaj Outreach
 
-All-in-one outreach engine for Awaj ET: **cold email sequences, lead magnets, domain warm-up, and transactional email** — on a single domain, built with **Next.js 16, React Email, Resend, and Appwrite Cloud**.
+All-in-one outreach engine for Awaj ET: **cold email sequences, lead magnets, and transactional email** — on a single domain, built with **Next.js 16, React Email, Resend, and Appwrite Cloud**.
 
 ## What's inside
 
@@ -8,10 +8,9 @@ All-in-one outreach engine for Awaj ET: **cold email sequences, lead magnets, do
 |---|---|
 | Cold outreach | 4-step sequence (intro → follow-up → value offer → breakup), enrollment engine, per-campaign daily limits |
 | Lead magnet | Public `subscribe` endpoint for your site forms: instant delivery email + optional nurture sequence |
-| Warm-up | Daily volume ramp (10 → 200/day by default) that caps all outreach until your domain reputation is built |
 | Transactional | `welcome` and `receipt` templates behind an authenticated API you call from your existing app |
 | Deliverability | Suppression list, bounce/complaint auto-stop via Resend webhooks, RFC 8058 one-click unsubscribe, `List-Unsubscribe` headers |
-| Dashboard | Contacts (+ CSV import), campaigns, sequence builder, warm-up monitor, send log with open/bounce rates |
+| Dashboard | Contacts (+ CSV import), campaigns, sequence builder, send log with open/bounce rates |
 
 ## Setup (15 minutes)
 
@@ -49,7 +48,6 @@ The workflow at `.github/workflows/outreach-cron.yml` calls your deployed app on
 | Schedule (UTC) | Endpoint | Purpose |
 |---|---|---|
 | every 15 min | `/api/cron/process-sequences` | send due sequence steps |
-| daily 06:00 | `/api/cron/warmup` | advance the warm-up ramp |
 
 **Setup (one time):**
 
@@ -59,7 +57,7 @@ The workflow at `.github/workflows/outreach-cron.yml` calls your deployed app on
    - `CRON_SECRET` — the exact same value as the `CRON_SECRET` env var in Vercel
 3. That's it — scheduled runs start automatically once the workflow file is on the default branch.
 
-**Testing it manually:** repo → **Actions** tab → *Outreach cron* → **Run workflow** → pick `process-sequences` or `warmup` → Run. Open the run's log; a healthy call prints something like `Result: {"processed":3,"sent":3,...}`. A `401` means the secrets don't match; connection errors usually mean `APP_URL` is wrong.
+**Testing it manually:** repo → **Actions** tab → *Outreach cron* → **Run workflow** → pick `process-sequences` → Run. Open the run's log; a healthy call prints something like `Result: {"processed":3,"sent":3,...}`. A `401` means the secrets don't match; connection errors usually mean `APP_URL` is wrong.
 
 **Adjusting the cadence:** edit the `cron:` lines in the workflow. Important: the `if:` condition on each job matches the schedule string **exactly**, so if you change `*/15 * * * *` to e.g. `0 * * * *` (hourly), update it in **both** places (the `schedule:` block and the job's `if:`). Cron times are UTC — Ethiopia is UTC+3, so `0 6 * * *` runs at 9:00 AM in Addis Ababa.
 
@@ -84,14 +82,14 @@ DNS records (Resend shows exact values when you verify the domain):
 2. **DKIM** — the three CNAME/TXT records from Resend's domain page.
 3. **DMARC** — TXT at `_dmarc.domain`: start with `v=DMARC1; p=none; rua=mailto:dmarc@domain`, tighten to `p=quarantine` after 2–4 clean weeks.
 
-Then start the warm-up from the dashboard. First two weeks: send mostly to inboxes that will open/reply. Keep bounce rate < 3% — the webhook auto-suppresses bounces and complaints and stops their sequences.
+First two weeks: send mostly to inboxes that will open/reply, and ramp volume up gradually yourself to protect domain reputation. Keep bounce rate < 3% — the webhook auto-suppresses bounces and complaints and stops their sequences.
 
 ## Typical workflow
 
 1. **Contacts** → import CSV (`email,firstName,lastName,company,tags`), tag them (e.g. `retail-addis`).
 2. **Sequences** → build a sequence from the template registry (subjects support `{{firstName}}` / `{{company}}`).
 3. **Campaigns** → create a campaign pointing at the sequence, set a daily limit, **Activate**, then enroll by tag.
-4. The 15-min cron does the rest, respecting: campaign daily limit → warm-up budget → suppression list.
+4. The 15-min cron does the rest, respecting: campaign daily limit → suppression list.
 5. **When someone replies, stop their sequence** — call `stopOnReply(email)` (exported from `src/lib/sequence-engine.ts`) or set the enrollment status to `replied`. Resend webhooks don't include replies; wire your inbox via Gmail API/IMAP if you want this automated.
 
 ## Integrating with your existing Next.js app
@@ -140,7 +138,7 @@ The app is protected by a shared password and a signed cookie, enforced by Next.
 - On sign-in, an HMAC-SHA256-signed, HttpOnly, Secure cookie valid for 30 days is set. The middleware verifies it on every request; pages redirect to `/login`, API routes get a JSON 401.
 - Routes with their own protection stay outside the gate: crons + transactional send (Bearer `CRON_SECRET`), the Resend webhook (svix signature), and the public unsubscribe + lead-magnet endpoints.
 - Sign out from the sidebar. To revoke all sessions at once (e.g. a device is lost), rotate `AUTH_SECRET`; to just change the password, rotate `DASHBOARD_PASSWORD` (existing cookies stay valid until they expire — rotate both to force re-login).
-- **Machine access:** every gated API route also accepts `Authorization: Bearer <CRON_SECRET>`, so your existing app or scripts can call `/api/contacts`, `/api/campaigns`, `/api/sequences`, `/api/send/manual`, and `/api/warmup` without a browser session:
+- **Machine access:** every gated API route also accepts `Authorization: Bearer <CRON_SECRET>`, so your existing app or scripts can call `/api/contacts`, `/api/campaigns`, `/api/sequences`, and `/api/send/manual` without a browser session:
 
   ```bash
   curl -X POST https://your-app/api/send/manual \
@@ -158,7 +156,6 @@ The app is protected by a shared password and a signed cookie, enforced by Next.
 ## Extending
 
 - **New template**: add a `.tsx` in `src/emails/…`, register it in `src/emails/registry.ts` — it immediately appears in the sequence builder.
-- **Warm-up tuning**: `WARMUP_START_VOLUME`, `WARMUP_GROWTH_RATE`, `WARMUP_MAX_DAILY`.
 - **Compliance**: cold email must include your real identity and honor opt-outs (the breakup step + suppression list handle this). Only email businesses with a legitimate reason to hear from you.
 
 ## Project map
@@ -166,10 +163,10 @@ The app is protected by a shared password and a signed cookie, enforced by Next.
 ```
 src/
   lib/            appwrite.ts (client+types) · send.ts (central sender) ·
-                  warmup.ts (ramp) · sequence-engine.ts (cron worker) · env.ts
-  emails/         registry.ts + cold/ lead-magnet/ transactional/ warmup/ templates
+                  sequence-engine.ts (cron worker) · env.ts · sms/, sms-sequence-engine.ts
+  emails/         registry.ts + cold/ lead-magnet/ transactional/ templates
   app/api/        cron/ contacts/ campaigns/ sequences/ send/transactional/
-                  lead-magnet/subscribe/ webhooks/resend/ unsubscribe/ warmup/
-  app/(dashboard) overview · contacts · campaigns · sequences · warmup
+                  lead-magnet/subscribe/ webhooks/resend/ unsubscribe/ sms/
+  app/(dashboard) overview · contacts · campaigns · sequences · sms-campaigns · sms-sequences
 scripts/          setup-appwrite.ts (creates collections)
 ```

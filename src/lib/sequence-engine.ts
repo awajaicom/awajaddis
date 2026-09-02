@@ -12,7 +12,6 @@ import {
 } from "./appwrite";
 import { sendEmail } from "./send";
 import { getSender, senderAddress } from "./senders";
-import { remainingWarmupBudget, recordWarmupSends } from "./warmup";
 import { renderTemplate } from "@/emails/registry";
 
 function todayStr(): string {
@@ -70,13 +69,10 @@ export interface ProcessResult {
 
 /**
  * Cron worker: finds due enrollments and sends the next step of each,
- * respecting campaign daily limits and the global warm-up budget.
+ * respecting campaign daily limits.
  */
 export async function processDueEnrollments(): Promise<ProcessResult> {
   const result: ProcessResult = { processed: 0, sent: 0, completed: 0, skipped: 0, errors: [] };
-
-  let budget = await remainingWarmupBudget();
-  if (budget <= 0) return result;
 
   const due = await db().listDocuments(DB(), COLLECTIONS.enrollments, [
     Query.equal("status", "active"),
@@ -85,12 +81,10 @@ export async function processDueEnrollments(): Promise<ProcessResult> {
   ]);
 
   const campaignCache = new Map<string, Campaign>();
-  let warmupSent = 0;
 
   for (const raw of due.documents) {
     const enrollment = raw as unknown as Enrollment;
     result.processed++;
-    if (budget <= 0) break;
 
     try {
       // Campaign must be active and under its daily limit.
@@ -164,8 +158,6 @@ export async function processDueEnrollments(): Promise<ProcessResult> {
         replyTo: sender && !sender.email.startsWith("no-reply") ? sender.email : undefined,
       });
 
-      budget--;
-      warmupSent++;
       result.sent++;
 
       campaign.sentToday++;
@@ -190,6 +182,5 @@ export async function processDueEnrollments(): Promise<ProcessResult> {
     }
   }
 
-  if (warmupSent > 0) await recordWarmupSends(warmupSent);
   return result;
 }

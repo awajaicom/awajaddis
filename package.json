@@ -2,7 +2,7 @@
   "name": "awaj-outreach",
   "version": "1.0.0",
   "private": true,
-  "description": "All-in-one outreach engine: cold email sequences, lead magnets, warm-up, and transactional email on a single domain. Built with Next.js 16, React Email, Resend, and Appwrite.",
+  "description": "All-in-one outreach engine: cold email sequences, lead magnets, SMS campaigns, and transactional email on a single domain. Built with Next.js 16, React Email, Resend, Appwrite, and AfroMessage.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

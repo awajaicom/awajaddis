@@ -1,5 +1,5 @@
 import { COLLECTIONS, DB, Query, db, type Contact } from "@/lib/appwrite";
-import { ContactForm, CsvImport } from "./ui";
+import { ContactForm, CsvImport, SmsOptOutButton } from "./ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +24,11 @@ export default async function ContactsPage() {
               <th className="px-4 py-2 font-medium">Email</th>
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Company</th>
+              <th className="px-4 py-2 font-medium">Phone</th>
               <th className="px-4 py-2 font-medium">Source</th>
               <th className="px-4 py-2 font-medium">Tags</th>
               <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -35,6 +37,7 @@ export default async function ContactsPage() {
                 <td className="px-4 py-2">{c.email}</td>
                 <td className="px-4 py-2">{[c.firstName, c.lastName].filter(Boolean).join(" ")}</td>
                 <td className="px-4 py-2">{c.company}</td>
+                <td className="px-4 py-2 text-smoke">{c.phone}</td>
                 <td className="px-4 py-2 text-smoke">{c.source}</td>
                 <td className="px-4 py-2 text-smoke">{c.tags?.join(", ")}</td>
                 <td className="px-4 py-2">
@@ -48,10 +51,11 @@ export default async function ContactsPage() {
                     {c.status}
                   </span>
                 </td>
+                <td className="px-4 py-2">{c.phone && <SmsOptOutButton phone={c.phone} />}</td>
               </tr>
             ))}
             {contacts.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-smoke/70">No contacts yet — add one or import a CSV.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-smoke/70">No contacts yet — add one or import a CSV.</td></tr>
             )}
           </tbody>
         </table>

@@ -13,7 +13,6 @@ import Nurture1 from "./lead-magnet/nurture-1";
 import Nurture2 from "./lead-magnet/nurture-2";
 import Welcome from "./transactional/welcome";
 import Receipt from "./transactional/receipt";
-import WarmupPing from "./warmup/warmup-ping";
 
 export interface TemplateVars {
   firstName?: string;
@@ -26,7 +25,7 @@ export interface TemplateVars {
 interface TemplateEntry {
   component: (props: TemplateVars) => ReactElement;
   defaultSubject: string;
-  category: "cold" | "lead_magnet" | "transactional" | "warmup" | "nurture";
+  category: "cold" | "lead_magnet" | "transactional" | "nurture";
   description: string;
 }
 
@@ -118,15 +117,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
     defaultSubject: "Your receipt from Awaj ET",
     category: "transactional",
     description: "Payment receipt",
-  },
-  "warmup-ping": {
-    component: (p) =>
-      createElement(WarmupPing, {
-        note: typeof p.note === "string" ? p.note : undefined,
-      }),
-    defaultSubject: "Quick check-in",
-    category: "warmup",
-    description: "Warm-up seed email (send to inboxes you control)",
   },
 };
 

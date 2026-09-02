@@ -1,5 +1,4 @@
 import { COLLECTIONS, DB, Query, db, type Send } from "@/lib/appwrite";
-import { getWarmupState } from "@/lib/warmup";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +8,10 @@ async function count(collection: string, queries: string[] = []): Promise<number
 }
 
 export default async function Overview() {
-  const [contacts, activeEnrollments, suppressions, warmup, recentSends] = await Promise.all([
+  const [contacts, activeEnrollments, suppressions, recentSends] = await Promise.all([
     count(COLLECTIONS.contacts),
     count(COLLECTIONS.enrollments, [Query.equal("status", "active")]),
     count(COLLECTIONS.suppressions),
-    getWarmupState(),
     db().listDocuments(DB(), COLLECTIONS.sends, [Query.limit(200), Query.orderDesc("sentAt")]),
   ]);
 
@@ -29,14 +27,6 @@ export default async function Overview() {
     { label: "Open rate (last 200)", value: `${openRate}%` },
     { label: "Bounce rate (last 200)", value: `${bounceRate}%`, alert: bounceRate > 3 },
     { label: "Suppressed", value: suppressions },
-    {
-      label: "Warm-up",
-      value: warmup
-        ? warmup.status === "completed"
-          ? "Done"
-          : `Day ${warmup.day} · ${warmup.sentToday}/${warmup.targetVolume}`
-        : "Not started",
-    },
   ];
 
   return (

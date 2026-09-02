@@ -5,8 +5,8 @@ name: Cron jobs
 # Requires a repo secret CRON_SECRET matching the app's CRON_SECRET env var.
 on:
   schedule:
-    - cron: "*/15 * * * *" # process-sequences
-    - cron: "0 0 * * *" # warmup, daily at midnight UTC
+    - cron: "*/15 * * * *" # process-sequences, process-sms-sequences
+    - cron: "*/10 * * * *" # sms-reconcile
   workflow_dispatch: {}
 
 jobs:
@@ -19,11 +19,20 @@ jobs:
           curl -fsS -X GET "https://mail.awajaddis.com/api/cron/process-sequences" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  warmup:
-    if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
+  process-sms-sequences:
+    if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Call /api/cron/warmup
+      - name: Call /api/cron/process-sms-sequences
         run: |
-          curl -fsS -X GET "https://mail.awajaddis.com/api/cron/warmup" \
+          curl -fsS -X GET "https://mail.awajaddis.com/api/cron/process-sms-sequences" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  sms-reconcile:
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/sms/reconcile
+        run: |
+          curl -fsS -X GET "https://mail.awajaddis.com/api/sms/reconcile" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

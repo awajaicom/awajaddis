@@ -4,8 +4,9 @@ export const NAV = [
   { href: "/campaigns", label: "Campaigns", code: "03" },
   { href: "/sequences", label: "Sequences", code: "04" },
   { href: "/inbox", label: "Inbox", code: "05" },
-  { href: "/warmup", label: "Warm-up", code: "06" },
-  { href: "/send", label: "Send email", code: "07" },
+  { href: "/send", label: "Send email", code: "06" },
+  { href: "/sms-campaigns", label: "SMS Campaigns", code: "07" },
+  { href: "/sms-sequences", label: "SMS Sequences", code: "08" },
 ];
 
 export function isActive(pathname: string, href: string): boolean {

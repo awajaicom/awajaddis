@@ -23,7 +23,6 @@ const labelCls = "mb-1 block text-xs font-medium text-smoke";
 
 /** Which var fields matter per template category/key. */
 function fieldsFor(key: string, category: string): string[] {
-  if (key === "warmup-ping") return ["note"];
   if (key === "lead-magnet-delivery") return ["firstName", "resourceName", "downloadUrl"];
   if (key === "receipt") return ["firstName", "invoiceNumber", "amount", "service"];
   if (key.startsWith("research-")) return ["firstName", "company", "industry"];
@@ -36,7 +35,6 @@ const FIELD_META: Record<string, { label: string; placeholder: string }> = {
   lastName: { label: "Last name", placeholder: "Bekele" },
   company: { label: "Company", placeholder: "Sara's Boutique" },
   industry: { label: "Industry", placeholder: "Ethiopian business" },
-  note: { label: "Message body", placeholder: "Checking in on this week's schedule." },
   resourceName: { label: "Resource name", placeholder: "SME Marketing Playbook" },
   downloadUrl: { label: "Download URL", placeholder: "https://awajet.com/downloads/playbook.pdf" },
   invoiceNumber: { label: "Invoice #", placeholder: "INV-0042" },
@@ -132,7 +130,7 @@ export function ManualSendForm({ templates }: { templates: TemplateOption[] }) {
             <input value={subject} onChange={(e) => setSubject(e.target.value)} className={inputCls} />
           </div>
           {varFields.map((f) => (
-            <div key={f} className={f === "note" || f === "downloadUrl" ? "sm:col-span-2" : ""}>
+            <div key={f} className={f === "downloadUrl" ? "sm:col-span-2" : ""}>
               <label className={labelCls}>{FIELD_META[f].label}</label>
               <input
                 value={vars[f] ?? ""}

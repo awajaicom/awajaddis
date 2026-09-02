@@ -28,6 +28,7 @@ export function ContactForm() {
         firstName: form.get("firstName"),
         lastName: form.get("lastName"),
         company: form.get("company"),
+        phone: form.get("phone"),
         tags,
       }),
     });
@@ -45,7 +46,8 @@ export function ContactForm() {
         <input name="company" placeholder="Company" className={inputCls} />
         <input name="firstName" placeholder="First name" className={inputCls} />
         <input name="lastName" placeholder="Last name" className={inputCls} />
-        <input name="tags" placeholder="Tags (comma-separated)" className={`${inputCls} sm:col-span-2`} />
+        <input name="phone" placeholder="Phone (e.g. 0911234567)" className={inputCls} />
+        <input name="tags" placeholder="Tags (comma-separated)" className={inputCls} />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <button disabled={busy} className={btnCls}>Add</button>
@@ -55,7 +57,7 @@ export function ContactForm() {
   );
 }
 
-/** CSV columns: email,firstName,lastName,company,tags (tags separated by ;) */
+/** CSV columns: email,firstName,lastName,company,phone,tags (tags separated by ;) */
 export function CsvImport() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,7 @@ export function CsvImport() {
         firstName: cols[idx("firstname")]?.trim() ?? "",
         lastName: cols[idx("lastname")]?.trim() ?? "",
         company: cols[idx("company")]?.trim() ?? "",
+        phone: cols[idx("phone")]?.trim() ?? "",
         tags: (cols[idx("tags")] ?? "").split(";").map((t) => t.trim()).filter(Boolean),
         source: "import",
       };
@@ -97,10 +100,43 @@ export function CsvImport() {
     <div className="rounded-lg border border-charcoal/10 bg-white p-5">
       <h2 className="mb-3 font-semibold">Import CSV</h2>
       <p className="mb-3 text-sm text-smoke">
-        Columns: <code>email,firstName,lastName,company,tags</code> (tags separated by <code>;</code>)
+        Columns: <code>email,firstName,lastName,company,phone,tags</code> (tags separated by <code>;</code>)
       </p>
       <input type="file" accept=".csv" onChange={onFile} disabled={busy} className="text-sm" />
       {msg && <p className="mt-3 text-sm text-smoke">{msg}</p>}
     </div>
+  );
+}
+
+/** Manual SMS opt-out for one contact's phone. Only affects SMS suppression/enrollments — email consent is untouched. */
+export function SmsOptOutButton({ phone }: { phone: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function optOut() {
+    if (!window.confirm(`Opt "${phone}" out of SMS? This stops their active SMS sequences.`)) return;
+    setBusy(true);
+    const res = await fetch("/api/sms-suppressions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.error ?? "Failed to opt out.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <button
+      disabled={busy}
+      onClick={optOut}
+      className="text-xs text-red-500 hover:underline disabled:opacity-50"
+    >
+      Opt out of SMS
+    </button>
   );
 }
