@@ -1,5 +1,5 @@
 import { COLLECTIONS, DB, Query, db, type SmsCampaign, type SmsSequence } from "@/lib/appwrite";
-import { SmsCampaignControls, SmsCampaignForm } from "./ui";
+import { EnrolledContacts, SmsCampaignControls, SmsCampaignForm } from "./ui";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,13 @@ export default async function SmsCampaignsPage() {
   ]);
   const campaigns = campaignsRes.documents as unknown as SmsCampaign[];
   const sequences = sequencesRes.documents as unknown as SmsSequence[];
+  const enrolledCounts = await Promise.all(
+    campaigns.map((c) =>
+      db()
+        .listDocuments(DB(), COLLECTIONS.smsEnrollments, [Query.equal("campaignId", c.$id), Query.limit(1)])
+        .then((r) => r.total)
+    )
+  );
   const seqName = (id: string) => sequences.find((s) => s.$id === id)?.name ?? "—";
   const today = new Date().toISOString().slice(0, 10);
   const sentLabel = (c: SmsCampaign) =>
@@ -26,7 +33,7 @@ export default async function SmsCampaignsPage() {
         <SmsCampaignForm sequences={sequences.map((s) => ({ id: s.$id, name: s.name }))} />
       </div>
       <div className="space-y-4">
-        {campaigns.map((c) => (
+        {campaigns.map((c, i) => (
           <div key={c.$id} className="rounded-lg border border-charcoal/10 bg-white p-5">
             <div className="flex items-start justify-between">
               <div>
@@ -49,6 +56,7 @@ export default async function SmsCampaignsPage() {
               </span>
             </div>
             <SmsCampaignControls id={c.$id} status={c.status} senderName={c.senderName} />
+            <EnrolledContacts campaignId={c.$id} count={enrolledCounts[i]} />
           </div>
         ))}
         {campaigns.length === 0 && (

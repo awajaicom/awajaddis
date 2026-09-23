@@ -165,3 +165,136 @@ export function SmsCampaignControls({
     </div>
   );
 }
+
+interface EnrolledContact {
+  $id: string;
+  currentStep: number;
+  status: string;
+  nextSendAt: string;
+  contact: { firstName: string; lastName?: string; phone?: string } | null;
+}
+
+/**
+ * Per-campaign enrollment list, collapsed by default (lazy-fetched on
+ * expand). Stop/Resume act on ONE enrollment in THIS campaign only — never
+ * the global suppression list, unlike SmsOptOutButton on the Contacts page.
+ */
+export function EnrolledContacts({ campaignId, count }: { campaignId: string; count: number }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<EnrolledContact[] | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch(`/api/sms-enrollments?campaignId=${campaignId}`);
+    const data = await res.json();
+    setRows(data.enrollments ?? []);
+    setLoading(false);
+  }
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && !rows) await load();
+  }
+
+  async function setStatus(id: string, status: "active" | "stopped", name: string) {
+    const confirmMsg =
+      status === "stopped"
+        ? `Stop ${name}'s remaining messages in this campaign? Their other campaigns and global SMS opt-in are unaffected.`
+        : `Resume ${name} in this campaign?`;
+    if (!window.confirm(confirmMsg)) return;
+    setBusyId(id);
+    const res = await fetch("/api/sms-enrollments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.error ?? "Failed to update enrollment.");
+      return;
+    }
+    await load();
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3">
+      <button onClick={toggle} className="text-xs text-smoke hover:underline">
+        {open ? "Hide" : "Show"} enrolled contacts ({count})
+      </button>
+      {open && (
+        <div className="mt-2 overflow-x-auto rounded-md border border-charcoal/10">
+          <table className="w-full min-w-[520px] text-xs">
+            <thead className="bg-mist text-left text-smoke">
+              <tr>
+                <th className="px-3 py-1.5 font-medium">Contact</th>
+                <th className="px-3 py-1.5 font-medium">Phone</th>
+                <th className="px-3 py-1.5 font-medium">Step</th>
+                <th className="px-3 py-1.5 font-medium">Status</th>
+                <th className="px-3 py-1.5 font-medium">Next send</th>
+                <th className="px-3 py-1.5 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={6} className="px-3 py-3 text-center text-smoke/70">Loading…</td></tr>
+              )}
+              {!loading && rows?.length === 0 && (
+                <tr><td colSpan={6} className="px-3 py-3 text-center text-smoke/70">No one enrolled yet.</td></tr>
+              )}
+              {!loading &&
+                rows?.map((r) => (
+                  <tr key={r.$id} className="border-t border-charcoal/5">
+                    <td className="px-3 py-1.5">
+                      {r.contact ? [r.contact.firstName, r.contact.lastName].filter(Boolean).join(" ") : "—"}
+                    </td>
+                    <td className="px-3 py-1.5 text-smoke">{r.contact?.phone ?? "—"}</td>
+                    <td className="px-3 py-1.5 text-smoke">{r.currentStep + 1}</td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${
+                          r.status === "active"
+                            ? "bg-gold/15 text-amber"
+                            : "bg-charcoal/10 text-smoke"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-smoke">
+                      {r.status === "active" ? new Date(r.nextSendAt).toLocaleString() : "—"}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {r.status === "active" && (
+                        <button
+                          disabled={busyId === r.$id}
+                          onClick={() => setStatus(r.$id, "stopped", r.contact?.firstName || "this contact")}
+                          className="text-red-500 hover:underline disabled:opacity-50"
+                        >
+                          Stop
+                        </button>
+                      )}
+                      {r.status === "stopped" && (
+                        <button
+                          disabled={busyId === r.$id}
+                          onClick={() => setStatus(r.$id, "active", r.contact?.firstName || "this contact")}
+                          className="text-charcoal hover:underline disabled:opacity-50"
+                        >
+                          Resume
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
