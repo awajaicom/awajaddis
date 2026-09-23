@@ -8,3 +8,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Contact lists extracted from source workbooks — business PII, not source.
+scripts/data/

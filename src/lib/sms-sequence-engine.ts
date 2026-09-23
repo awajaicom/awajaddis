@@ -34,15 +34,24 @@ async function getSteps(sequenceId: string): Promise<SmsSequenceStep[]> {
   return res.documents as unknown as SmsSequenceStep[];
 }
 
-/** Enroll a contact into an SMS campaign's sequence. First step sends on next cron run. */
-export async function enrollSms(contactId: string, campaign: SmsCampaign): Promise<SmsEnrollment> {
+/**
+ * Enroll a contact into an SMS campaign's sequence. First step sends on the
+ * next cron run by default; pass nextSendAt to schedule it instead, which is
+ * how a bulk import paces a large batch across days and cron ticks rather
+ * than dumping every enrollment as due-now and leaning on dailyLimit.
+ */
+export async function enrollSms(
+  contactId: string,
+  campaign: SmsCampaign,
+  nextSendAt: string = new Date().toISOString()
+): Promise<SmsEnrollment> {
   const doc = await db().createDocument(DB(), COLLECTIONS.smsEnrollments, ID.unique(), {
     contactId,
     campaignId: campaign.$id,
     sequenceId: campaign.sequenceId,
     currentStep: 0,
     status: "active",
-    nextSendAt: new Date().toISOString(),
+    nextSendAt,
   });
   return doc as unknown as SmsEnrollment;
 }
